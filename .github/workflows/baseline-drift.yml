@@ -1,0 +1,65 @@
+name: Baseline manifest drift gate (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      php-version:
+        description: PHP version
+        type: string
+        default: '8.5'
+
+permissions:
+  contents: read
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: ${{ inputs.php-version }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Verify baseline manifest (drift detection)
+        id: verify
+        run: |
+          if php tools/baseline/manifest.php --verify --format=json > drift.json; then
+            echo "drift=false" >>"$GITHUB_OUTPUT"
+          else
+            echo "drift=true" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Regenerate manifest and open baseline PR
+        if: steps.verify.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          php tools/baseline/manifest.php --generate
+          CHANGED="$(php tools/baseline/manifest.php --verify --format=json | jq -r '.untracked_by_manifest[]?, .missing[]?' | sort -u | sed 's/^/- /' || true)"
+          BRANCH="baseline/drift-$(date +%Y%m%d)"
+          git config user.name "baseline-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add tools/baseline/MANIFEST.json
+          git commit -m "chore(baseline): refresh manifest after drift" --no-verify
+          git push origin "$BRANCH"
+          {
+            echo "### Baseline drift detected"
+            echo ""
+            echo "MANIFEST.json no longer matched the working tree. This PR refreshes it."
+            echo ""
+            echo "**Security impact:** none by itself — review that every newly tracked file is meant to be baseline-owned, and that no *CHANGED* file was tampered with."
+            echo ""
+            if [ -n "$CHANGED" ]; then
+              echo "**Files involved:**"
+              printf '%s\n' "$CHANGED"
+            fi
+          } > pr-body.md
+          gh pr create \
+            --title "chore(baseline): refresh manifest ($(date +%F))" \
+            --body-file pr-body.md \
+            --base main \
+            --head "$BRANCH"
