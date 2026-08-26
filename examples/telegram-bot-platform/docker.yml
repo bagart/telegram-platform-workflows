@@ -1,0 +1,27 @@
+name: Docker
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - 'docker/**'
+      - 'Dockerfile*'
+      - 'docker-compose*'
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    uses: BAGArt/telegram-platform-workflows/.github/workflows/docker.yml@<CENTRAL_SHA> # pin!
+    permissions:
+      contents: read
+      packages: write # image push on main/master/tags
+    with:
+      php-version: '8.5'
+      push-image: ${{ github.event_name == 'push' }}

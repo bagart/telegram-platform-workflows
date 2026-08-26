@@ -1,0 +1,16 @@
+name: Nightly
+
+on:
+  schedule:
+    # Nightly deep sweep: full suite + audits (legacy host schedule).
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    uses: BAGArt/telegram-platform-workflows/.github/workflows/nightly.yml@<CENTRAL_SHA> # pin!
+    with:
+      php-version: '8.5'

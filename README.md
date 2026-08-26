@@ -1,8 +1,8 @@
-# BAGArt/github-workflows
+# BAGArt/telegram-platform-workflows
 
 Central reusable GitHub Actions workflows (`workflow_call`) for BAGArt
 repositories. Job logic lives here; consumers own only trigger wiring and
-secrets selection (RFC `todo.baseline-package.md` §6).
+secrets selection.
 
 ## Available workflows
 
@@ -28,7 +28,7 @@ on:
 
 jobs:
   tests:
-    uses: BAGArt/github-workflows/.github/workflows/tests.yml@<COMMIT_SHA>  # pin!
+    uses: BAGArt/telegram-platform-workflows/.github/workflows/tests.yml@<COMMIT_SHA>  # pin!
     permissions:
       contents: read
     with:
