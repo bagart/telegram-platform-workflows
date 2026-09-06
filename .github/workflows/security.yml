@@ -38,6 +38,7 @@ jobs:
         run: |
           pipx install "semgrep==${SEMGREP_VERSION}" 2>/dev/null || pip install --quiet "semgrep==${SEMGREP_VERSION}"
           semgrep --version
+          chmod +x tools/baseline/semgrep-scan.sh
           tools/baseline/semgrep-scan.sh
 
       # Findings ingestion (03 §53): SARIF produced without --error so every

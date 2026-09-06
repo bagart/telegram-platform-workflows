@@ -56,6 +56,8 @@ jobs:
           cat > misc/BAGArt/telegram-bot-lib/src/Modules/TgModuleContract.php <<'PHP'
           <?php declare(strict_types=1); namespace BAGArt\TelegramBot\Modules; interface TgModuleContract {}
           PHP
+          # Restore real baseline package (separate git repo, not in main tree)
+          git clone --depth 1 https://github.com/bagart/telegram-platform-devops-baseline.git misc/BAGArt/telegram-platform-devops-baseline 2>/dev/null || true
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
