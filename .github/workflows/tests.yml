@@ -58,6 +58,18 @@ jobs:
           PHP
           # Restore real baseline package (separate git repo, not in main tree)
           git clone --depth 1 https://github.com/bagart/telegram-platform-devops-baseline.git misc/BAGArt/telegram-platform-devops-baseline 2>/dev/null || true
+          # Ensure base migration exists (lives in telegram-platform-management)
+          mkdir -p database/migrations
+          test -f database/migrations/2026_02_25_022457_create_tg_bots_table.php || cat > database/migrations/2026_02_25_022457_create_tg_bots_table.php <<'MIGRATION'
+          <?php
+          use Illuminate\Database\Migrations\Migration;
+          use Illuminate\Database\Schema\Blueprint;
+          use Illuminate\Support\Facades\Schema;
+          return new class extends Migration {
+              public function up(): void { Schema::create('tg_bots', function (Blueprint $table) { $table->string('bot_id', 20)->primary(); $table->string('token'); $table->string('secret_token')->nullable(); $table->timestampsTz(); }); }
+              public function down(): void { Schema::dropIfExists('tg_bots'); }
+          };
+          MIGRATION
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
