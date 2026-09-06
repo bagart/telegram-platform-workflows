@@ -37,6 +37,12 @@ jobs:
           tools: composer:v2
           coverage: none
 
+      - name: Create stubs for missing path repos (CI has no misc/)
+        run: |
+          for url in $(jq -r '.repositories[] | select(.type=="path") | .url' composer.json); do
+            [ -d "$url" ] || { mkdir -p "$url" && echo '{}' > "$url/composer.json"; }
+          done
+
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
 

@@ -30,6 +30,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Create stubs for missing path repos (CI has no misc/)
+        run: |
+          for url in $(jq -r '.repositories[] | select(.type=="path") | .url' composer.json); do
+            [ -d "$url" ] || { mkdir -p "$url" && echo '{}' > "$url/composer.json"; }
+          done
+
       - name: Install dependencies
         run: |
           composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
@@ -98,6 +104,12 @@ jobs:
           tools: composer:v2
           coverage: pcov
 
+      - name: Create stubs for missing path repos (CI has no misc/)
+        run: |
+          for url in $(jq -r '.repositories[] | select(.type=="path") | .url' composer.json); do
+            [ -d "$url" ] || { mkdir -p "$url" && echo '{}' > "$url/composer.json"; }
+          done
+
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
 
@@ -126,6 +138,12 @@ jobs:
           php-version: ${{ inputs.php-version }}
           tools: composer:v2, pcov
           coverage: pcov
+
+      - name: Create stubs for missing path repos (CI has no misc/)
+        run: |
+          for url in $(jq -r '.repositories[] | select(.type=="path") | .url' composer.json); do
+            [ -d "$url" ] || { mkdir -p "$url" && echo '{}' > "$url/composer.json"; }
+          done
 
       - name: Install platform dependencies
         run: composer install --no-interaction --prefer-dist --no-progress --ignore-platform-req=ext-xhprof
