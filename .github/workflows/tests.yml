@@ -63,7 +63,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
 
       - name: Tests
-        run: ./vendor/bin/pest --testsuite Unit --testsuite Feature --compact
+        run: ./vendor/bin/pest --testsuite Unit,Feature --compact
 
       - name: Static analysis (phpstan)
         run: vendor/bin/phpstan analyse --no-interaction

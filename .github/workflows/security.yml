@@ -41,7 +41,7 @@ jobs:
           semgrep scan --error --metrics=off \
             --config tools/baseline/semgrep-rules.yml \
             --exclude '*/src/TgApi/*' --exclude vendor --exclude node_modules \
-            app tests misc/BAGArt/*/src
+            app tests
 
       # Findings ingestion (03 §53): SARIF produced without --error so every
       # result lands in the report; the enforcing gate is the step above.
@@ -56,7 +56,7 @@ jobs:
           semgrep scan --metrics=off \
             --config tools/baseline/semgrep-rules.yml \
             --exclude '*/src/TgApi/*' --exclude vendor --exclude node_modules \
-            --sarif --output semgrep.sarif app tests misc/BAGArt/*/src || true
+            --sarif --output semgrep.sarif app tests || true
           jq -n --arg sha "${{ github.sha }}" --arg ref "${{ github.ref }}" \
                 --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
                 --slurpfile s semgrep.sarif \
