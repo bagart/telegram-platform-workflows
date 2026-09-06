@@ -75,7 +75,7 @@ jobs:
           PHP
 
       - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof --no-scripts
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
 
       - name: Copy Environment File
         run: cp .env.example .env
