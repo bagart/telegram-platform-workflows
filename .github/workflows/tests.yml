@@ -40,11 +40,42 @@ jobs:
       - name: Create stubs for missing path repos (CI has no misc/)
         run: |
           for url in $(jq -r '.repositories[] | select(.type=="path") | .url' composer.json); do
-            [ -d "$url" ] || { mkdir -p "$url" && echo '{}' > "$url/composer.json"; }
+            [ -d "$url" ] || mkdir -p "$url"
           done
+          # Minimal class stubs so artisan package:discover can load config/tg_modules.php
+          mkdir -p misc/BAGArt/telegram-platform-module/src/Config
+          mkdir -p misc/BAGArt/telegram-platform-module/src/Routing
+          cat > misc/BAGArt/telegram-platform-module/composer.json <<'EOF'
+          {"name":"bagart/telegram-platform-module","autoload":{"psr-4":{"BAGArt\\TelegramModuleEngine\\":"src/"}}}
+          EOF
+          cat > misc/BAGArt/telegram-platform-module/src/Config/TgModuleConfig.php <<'PHP'
+          <?php declare(strict_types=1); namespace BAGArt\TelegramModuleEngine\Config; use BAGArt\TelegramBot\Modules\TgModuleContract; final readonly class TgModuleConfig { public function __construct(public bool $enabled, public string $provider, public array $seeders = [], public ?string $laravelProvider = null, public array $routes = [], public array $commands = [], public array $schedule = [], public array $httpRoutes = [], public array $routeMiddleware = [], public array $exceptionRenderables = [], public array $frontendPages = [], public array $pageGenerators = []) {} }
+          PHP
+          cat > misc/BAGArt/telegram-platform-module/src/Config/TgModuleSchedule.php <<'PHP'
+          <?php declare(strict_types=1); namespace BAGArt\TelegramModuleEngine\Config; final readonly class TgModuleSchedule { public function __construct(public string $command, public string $expression, public bool $enabled = true) {} }
+          PHP
+          cat > misc/BAGArt/telegram-platform-module/src/Routing/RouteDeclaration.php <<'PHP'
+          <?php declare(strict_types=1); namespace BAGArt\TelegramModuleEngine\Routing; final readonly class RouteDeclaration { public function __construct(public string $type, public string $key, public int $priority = 0, public ?array $payload = null) {} }
+          PHP
+          # telegram-bot-lib stub (TgModuleContract interface)
+          mkdir -p misc/BAGArt/telegram-bot-lib/src/Modules
+          cat > misc/BAGArt/telegram-bot-lib/composer.json <<'EOF'
+          {"name":"bagart/telegram-bot-lib","autoload":{"psr-4":{"BAGArt\\TelegramBot\\":"src/"}}}
+          EOF
+          cat > misc/BAGArt/telegram-bot-lib/src/Modules/TgModuleContract.php <<'PHP'
+          <?php declare(strict_types=1); namespace BAGArt\TelegramBot\Modules; interface TgModuleContract {}
+          PHP
+          # telegram-bot-lib stub (TgModuleContract lives here)
+          mkdir -p misc/BAGArt/telegram-bot-lib/src/Modules
+          cat > misc/BAGArt/telegram-bot-lib/composer.json <<'EOF'
+          {"name":"bagart/telegram-bot-lib","autoload":{"psr-4":{"BAGArt\\TelegramBot\\":"src/"}}}
+          EOF
+          cat > misc/BAGArt/telegram-bot-lib/src/Modules/TgModuleContract.php <<'PHP'
+          <?php declare(strict_types=1); namespace BAGArt\TelegramBot\Modules; interface TgModuleContract {}
+          PHP
 
       - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof --no-scripts
 
       - name: Copy Environment File
         run: cp .env.example .env
