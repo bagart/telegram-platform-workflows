@@ -33,8 +33,10 @@ jobs:
         run: composer audit --no-dev --locked --abandoned=report
 
       - name: SAST (Semgrep)
+        env:
+          SEMGREP_VERSION: ${{ vars.SEMGREP_VERSION || '1.56.0' }}
         run: |
-          pip install --quiet "semgrep==${SEMGREP_VERSION}"
+          pipx install "semgrep==${SEMGREP_VERSION}" 2>/dev/null || pip install --quiet "semgrep==${SEMGREP_VERSION}"
           semgrep --version
           tools/baseline/semgrep-scan.sh
 
@@ -45,8 +47,9 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SEMGREP_VERSION: ${{ vars.SEMGREP_VERSION || '1.56.0' }}
         run: |
-          pip install --quiet "semgrep==${SEMGREP_VERSION}"
+          pipx install "semgrep==${SEMGREP_VERSION}" 2>/dev/null || pip install --quiet "semgrep==${SEMGREP_VERSION}"
           semgrep scan --metrics=off \
             --config tools/baseline/semgrep-rules.yml \
             --exclude '*/src/TgApi/*' --exclude vendor --exclude node_modules \

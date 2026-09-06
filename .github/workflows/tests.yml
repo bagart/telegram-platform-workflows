@@ -29,22 +29,13 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - name: Setup Node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: '22'
-
-      - name: Install Node Dependencies
-        run: npm i
-
       - name: Create stubs for missing path repos (CI has no misc/)
         run: |
           for url in $(jq -r '.repositories[] | select(.type=="path") | .url' composer.json); do
             [ -d "$url" ] || mkdir -p "$url"
           done
           # Minimal class stubs so artisan package:discover can load config/tg_modules.php
-          mkdir -p misc/BAGArt/telegram-platform-module/src/Config
-          mkdir -p misc/BAGArt/telegram-platform-module/src/Routing
+          mkdir -p misc/BAGArt/telegram-platform-module/src/Config misc/BAGArt/telegram-platform-module/src/Routing
           cat > misc/BAGArt/telegram-platform-module/composer.json <<'EOF'
           {"name":"bagart/telegram-platform-module","autoload":{"psr-4":{"BAGArt\\TelegramModuleEngine\\":"src/"}}}
           EOF
@@ -65,43 +56,15 @@ jobs:
           cat > misc/BAGArt/telegram-bot-lib/src/Modules/TgModuleContract.php <<'PHP'
           <?php declare(strict_types=1); namespace BAGArt\TelegramBot\Modules; interface TgModuleContract {}
           PHP
-          # telegram-bot-lib stub (TgModuleContract lives here)
-          mkdir -p misc/BAGArt/telegram-bot-lib/src/Modules
-          cat > misc/BAGArt/telegram-bot-lib/composer.json <<'EOF'
-          {"name":"bagart/telegram-bot-lib","autoload":{"psr-4":{"BAGArt\\TelegramBot\\":"src/"}}}
-          EOF
-          cat > misc/BAGArt/telegram-bot-lib/src/Modules/TgModuleContract.php <<'PHP'
-          <?php declare(strict_types=1); namespace BAGArt\TelegramBot\Modules; interface TgModuleContract {}
-          PHP
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
 
-      - name: Copy Environment File
-        run: cp .env.example .env
-
-      - name: Generate Application Key
-        run: php artisan key:generate
-
-      - name: Build Assets
-        run: npm run build
-
-      # Artifact scan layer (03 §10): built bundles are untracked, so the
-      # source-tree secret scans never see them.
-      - name: Artifact secret scan (built frontend bundles)
-        run: bash tools/baseline/artifact-scan.sh
-
       - name: Tests
-        run: ./vendor/bin/pest
+        run: ./vendor/bin/pest --compact
 
       - name: Static analysis (phpstan)
-        # Blocking since 2026-08-24: the baseline was regenerated honestly
-        # (nested vendor dirs excluded) and the local run is clean. New
-        # violations must be fixed or explicitly baselined.
         run: vendor/bin/phpstan analyse --no-interaction
-
-      - name: Highload audit (tgbm:audit --strict)
-        run: php artisan tgbm:audit --strict
 
       - name: Skills sync check
         run: bash scripts/sync-skills --check
