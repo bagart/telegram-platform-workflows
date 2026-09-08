@@ -48,10 +48,10 @@ jobs:
           ignore-unfixed: true
 
       - name: SBOM (CycloneDX)
-        uses: anchore/sbom-action@f6c3d0fe42c3cf876e3462574e4c9416b5e0f07a # v0.9.0
+        uses: anchore/sbom-action@006b7ce8314066bdf1765b4500370d40fa6917a3 # v0.24.2
         with:
           format: cyclonedx-json
-          artifact-name: sbom.cdx.json
+          artifact-name: sbom-cdx-json
 
       - name: Image tag immutability policy (03 §38)
         run: bash tools/baseline/image-policy.sh
