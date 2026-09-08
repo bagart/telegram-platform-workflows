@@ -63,11 +63,12 @@ jobs:
             --config tools/baseline/semgrep-rules.yml \
             --exclude '*/src/TgApi/*' --exclude vendor --exclude node_modules \
             --sarif --output semgrep.sarif app tests || true
-          jq -n --arg sha "${{ github.sha }}" --arg ref "${{ github.ref }}" \
+          PAYLOAD=$(jq -n --arg sha "${{ github.sha }}" --arg ref "${{ github.ref }}" \
                 --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                --arg uri "file://${PWD}" \
                 --slurpfile s semgrep.sarif \
-                '{commit_sha:$sha, ref:$ref, checkout_uri:"file://"+(env.PWD // ""), started_at:$now, sarif:$s[0]}' \
-                > sarif-payload.json
+                '{commit_sha:$sha, ref:$ref, checkout_uri:$uri, started_at:$now, sarif:$s[0]}')
+          echo "$PAYLOAD" > sarif-payload.json
           gh api --method POST "repos/${{ github.repository }}/code-scanning/sarifs" \
             --input sarif-payload.json >/dev/null && echo "SARIF uploaded" \
             || echo "SARIF upload skipped (code scanning unavailable)"
