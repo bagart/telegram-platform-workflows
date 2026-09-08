@@ -66,8 +66,8 @@ jobs:
           PAYLOAD=$(jq -n --arg sha "${{ github.sha }}" --arg ref "${{ github.ref }}" \
                 --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
                 --arg uri "file://${PWD}" \
-                --slurpfile s semgrep.sarif \
-                '{commit_sha:$sha, ref:$ref, checkout_uri:$uri, started_at:$now, sarif:$s[0]}')
+                --arg sarif "$(cat semgrep.sarif)" \
+                '{commit_sha:$sha, ref:$ref, checkout_uri:$uri, started_at:$now, sarif:$sarif}')
           echo "$PAYLOAD" > sarif-payload.json
           gh api --method POST "repos/${{ github.repository }}/code-scanning/sarifs" \
             --input sarif-payload.json >/dev/null && echo "SARIF uploaded" \
