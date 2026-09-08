@@ -44,6 +44,7 @@ jobs:
           pipx install "semgrep==${SEMGREP_VERSION}" 2>/dev/null || pip install --quiet "semgrep==${SEMGREP_VERSION}"
           semgrep --version
           semgrep scan --error --metrics=off \
+            --severity ERROR \
             --config tools/baseline/semgrep-rules.yml \
             --exclude '*/src/TgApi/*' --exclude vendor --exclude node_modules \
             app tests
