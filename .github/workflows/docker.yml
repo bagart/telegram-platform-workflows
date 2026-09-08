@@ -17,8 +17,13 @@ permissions:
 jobs:
   build-scan-publish:
     runs-on: ubuntu-latest
+    env:
+      BASELINE_DIR: ${{ github.workspace }}/misc/BAGArt/telegram-platform-devops-baseline
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Clone baseline package
+        run: git clone --depth 1 https://github.com/bagart/telegram-platform-devops-baseline.git misc/BAGArt/telegram-platform-devops-baseline 2>/dev/null || true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
