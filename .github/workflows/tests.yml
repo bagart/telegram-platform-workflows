@@ -81,4 +81,4 @@ jobs:
         run: vendor/bin/phpstan analyse --no-interaction
 
       - name: Skills sync check
-        run: bash scripts/sync-skills --check
+        run: bash cmd/sync-skills --check
