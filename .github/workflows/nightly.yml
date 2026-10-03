@@ -100,11 +100,10 @@ jobs:
 
   coverage:
     # Coverage collection + threshold gate (04-qa-and-testing.md §15).
-    # Report-only until a stable baseline accumulates; promote to blocking by
-    # setting BASELINE_COVERAGE_MIN in repo variables and dropping
-    # continue-on-error.
+    # Blocking since 2026-10-03: floor 30 sits just below the measured
+    # baseline (31.8% pcov / 32.1% xdebug — docs/questions/coverage-min-threshold.md);
+    # raise it as coverage actually improves.
     runs-on: ubuntu-latest
-    continue-on-error: true
     # Same integration requirements as full-suite: live Redis (no-server
     # guards unreachable otherwise) and built assets (Inertia page tests hit
     # the Vite manifest).
@@ -119,7 +118,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      BASELINE_COVERAGE_MIN: '55'
+      BASELINE_COVERAGE_MIN: '30'
       APP_KEY: base64:I7MrkZI5VQJnYLNLLclhvhFh5ggMajlW4cg8XSyB8R8=
       TG_MODULE_ENABLED_example: 'false'
     steps:
@@ -164,10 +163,9 @@ jobs:
     # Mutation testing for the async kernel core (04-qa-and-testing.md §14).
     # Pest-native mutation engine against the AsyncKernelLib suite; the
     # minimum score comes from tools/baseline/mutation-baseline.json
-    # (zero = report-only). Promotion: set a real floor there and drop
-    # continue-on-error. Runs are long, hence nightly-only.
+    # (msi_floor 97.0, measured 100.00% — docs/questions/mutation-floor-enforcement.md).
+    # Blocking since 2026-10-03. Runs are long, hence nightly-only.
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
       APP_KEY: base64:I7MrkZI5VQJnYLNLLclhvhFh5ggMajlW4cg8XSyB8R8=
       TG_MODULE_ENABLED_example: 'false'
