@@ -105,6 +105,19 @@ jobs:
     # continue-on-error.
     runs-on: ubuntu-latest
     continue-on-error: true
+    # Same integration requirements as full-suite: live Redis (no-server
+    # guards unreachable otherwise) and built assets (Inertia page tests hit
+    # the Vite manifest).
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       BASELINE_COVERAGE_MIN: '55'
       APP_KEY: base64:I7MrkZI5VQJnYLNLLclhvhFh5ggMajlW4cg8XSyB8R8=
@@ -119,8 +132,15 @@ jobs:
           tools: composer:v2
           coverage: pcov
 
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '22'
+
       - name: Install dependencies (prod manifest with dev tooling)
-        run: bash cmd/deps/install --mode=prod --dev --ignore-platform-req=ext-xhprof
+        run: |
+          bash cmd/deps/install --mode=prod --dev --ignore-platform-req=ext-xhprof
+          npm i
 
       - name: Map test/config paths to vendor (CI-only, Q12-A)
         run: php cmd/ci/rewrite-vendor-paths.php
@@ -130,7 +150,10 @@ jobs:
         # install); key:generate would refuse to rewrite a process-level key.
         run: cp .env.example .env
 
-      - name: Coverage-gated suite (app)
+      - name: Build assets
+        run: npm run build
+
+      - name: Coverage-gated suite (app + libs)
         run: vendor/bin/pest --coverage --min=${BASELINE_COVERAGE_MIN}
 
   mutation:
