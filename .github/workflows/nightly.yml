@@ -13,6 +13,19 @@ permissions:
 jobs:
   full-suite:
     runs-on: ubuntu-latest
+    # Live Redis for integration suites (bot-lib outbound queue, proxy audit
+    # streams, ask-client connector); they target 127.0.0.1:6379 and their
+    # no-server guards are not reachable without a server.
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       APP_KEY: base64:I7MrkZI5VQJnYLNLLclhvhFh5ggMajlW4cg8XSyB8R8=
       TG_MODULE_ENABLED_example: 'false'
