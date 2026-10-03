@@ -131,6 +131,10 @@ jobs:
           php-version: ${{ inputs.php-version }}
           tools: composer:v2
           coverage: pcov
+          # pcov.directory defaults to auto (first of src/lib/app in cwd),
+          # which picks repo app/ and silently drops every vendor/bagart
+          # file from collection — report shows ~0% despite green tests.
+          ini-values: pcov.directory=.
 
       - name: Setup Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -176,6 +180,10 @@ jobs:
           php-version: ${{ inputs.php-version }}
           tools: composer:v2, pcov
           coverage: pcov
+          # Same pcov.directory=auto trap as the coverage job: only app/
+          # would be collected, so the mutation coverage report contains no
+          # kernel files and covered-only filtering yields zero mutations.
+          ini-values: pcov.directory=.
 
       - name: Install platform dependencies (prod manifest with dev tooling)
         run: bash cmd/deps/install --mode=prod --dev --ignore-platform-req=ext-xhprof
