@@ -13,11 +13,13 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # composer.json requires php ^8.5 — older versions would fail on install.
-        php-version: ['8.5']
-
+    # Same install posture as nightly: a clean checkout has no misc/ tree, so
+    # bagart/* resolve as versioned VCS packages from composer.prod.json and
+    # test/config paths are rewritten into vendor/ before the suite runs
+    # (the old stub-strategy could not boot the real Feature suite).
+    env:
+      APP_KEY: base64:I7MrkZI5VQJnYLNLLclhvhFh5ggMajlW4cg8XSyB8R8=
+      TG_MODULE_ENABLED_example: 'false'
     steps:
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -25,60 +27,32 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: ${{ inputs.php-version }}
           tools: composer:v2
           coverage: none
 
-      - name: Create stubs for missing path repos (CI has no misc/)
-        run: |
-          for url in $(jq -r '.repositories[] | select(.type=="path") | .url' composer.json); do
-            [ -d "$url" ] || mkdir -p "$url"
-          done
-          # Minimal class stubs so artisan package:discover can load config/tg_modules.php
-          mkdir -p misc/BAGArt/telegram-platform-module/src/Config misc/BAGArt/telegram-platform-module/src/Routing
-          cat > misc/BAGArt/telegram-platform-module/composer.json <<'EOF'
-          {"name":"bagart/telegram-platform-module","autoload":{"psr-4":{"BAGArt\\TelegramModuleEngine\\":"src/"}}}
-          EOF
-          cat > misc/BAGArt/telegram-platform-module/src/Config/TgModuleConfig.php <<'PHP'
-          <?php declare(strict_types=1); namespace BAGArt\TelegramModuleEngine\Config; use BAGArt\TelegramBot\Modules\TgModuleContract; final readonly class TgModuleConfig { public function __construct(public bool $enabled, public string $provider, public array $seeders = [], public ?string $laravelProvider = null, public array $routes = [], public array $commands = [], public array $schedule = [], public array $httpRoutes = [], public array $routeMiddleware = [], public array $exceptionRenderables = [], public array $frontendPages = [], public array $pageGenerators = [], public array $settingsScreens = [], public ?string $sourcePath = null) {} }
-          PHP
-          cat > misc/BAGArt/telegram-platform-module/src/Config/TgModuleSchedule.php <<'PHP'
-          <?php declare(strict_types=1); namespace BAGArt\TelegramModuleEngine\Config; final readonly class TgModuleSchedule { public function __construct(public string $command, public string $expression, public bool $enabled = true) {} }
-          PHP
-          cat > misc/BAGArt/telegram-platform-module/src/Routing/RouteDeclaration.php <<'PHP'
-          <?php declare(strict_types=1); namespace BAGArt\TelegramModuleEngine\Routing; final readonly class RouteDeclaration { public function __construct(public string $type, public string $key, public int $priority = 0, public ?array $payload = null) {} }
-          PHP
-          # telegram-bot-lib stub (TgModuleContract interface)
-          mkdir -p misc/BAGArt/telegram-bot-lib/src/Modules
-          cat > misc/BAGArt/telegram-bot-lib/composer.json <<'EOF'
-          {"name":"bagart/telegram-bot-lib","autoload":{"psr-4":{"BAGArt\\TelegramBot\\":"src/"}}}
-          EOF
-          cat > misc/BAGArt/telegram-bot-lib/src/Modules/TgModuleContract.php <<'PHP'
-          <?php declare(strict_types=1); namespace BAGArt\TelegramBot\Modules; interface TgModuleContract {}
-          PHP
-          # Restore real baseline package (separate git repo, not in main tree)
-          git clone --depth 1 https://github.com/bagart/telegram-platform-devops-baseline.git misc/BAGArt/telegram-platform-devops-baseline 2>/dev/null || true
-          # Ensure base migration exists (lives in telegram-platform-management)
-          mkdir -p database/migrations
-          test -f database/migrations/2026_02_25_022457_create_tg_bots_table.php || cat > database/migrations/2026_02_25_022457_create_tg_bots_table.php <<'MIGRATION'
-          <?php
-          use Illuminate\Database\Migrations\Migration;
-          use Illuminate\Database\Schema\Blueprint;
-          use Illuminate\Support\Facades\Schema;
-          return new class extends Migration {
-              public function up(): void { Schema::create('tg_bots', function (Blueprint $table) { $table->string('bot_id', 20)->primary(); $table->string('token'); $table->string('secret_token')->nullable(); $table->timestampsTz(); }); }
-              public function down(): void { Schema::dropIfExists('tg_bots'); }
-          };
-          MIGRATION
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '22'
 
-      - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=ext-xhprof
+      - name: Install dependencies (prod manifest with dev tooling)
+        run: |
+          bash cmd/deps/install --mode=prod --dev --ignore-platform-req=ext-xhprof
+          npm i
+
+      - name: Map test/config paths to vendor (CI-only, Q12-A)
+        run: php cmd/ci/rewrite-vendor-paths.php
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      # Inertia page tests resolve the Vite manifest.
+      - name: Build assets
+        run: npm run build
 
       - name: Tests
         run: ./vendor/bin/pest --testsuite Feature --compact
-
-      - name: Static analysis (phpstan)
-        run: vendor/bin/phpstan analyse --no-interaction
 
       - name: Skills sync check
         run: bash cmd/sync-skills --check

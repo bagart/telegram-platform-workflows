@@ -23,6 +23,16 @@ jobs:
           tools: composer:v2
           coverage: none
 
+      # No composer install in this job; tools/baseline/*.php delegate to the
+      # engine at vendor/bagart/telegram-platform-devops-baseline, so fetch
+      # that package directly (the job only needs controls/manifest.php).
+      - name: Ensure baseline engine is available
+        run: |
+          if [ ! -f vendor/bagart/telegram-platform-devops-baseline/controls/manifest.php ]; then
+            mkdir -p vendor/bagart
+            git clone --depth 1 https://github.com/bagart/telegram-platform-devops-baseline.git vendor/bagart/telegram-platform-devops-baseline
+          fi
+
       - name: Verify baseline manifest (drift detection)
         id: verify
         run: |
